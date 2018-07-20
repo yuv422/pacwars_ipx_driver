@@ -1,0 +1,312 @@
+							PACWARS
+							-------
+
+GENERAL
+-------
+
+PacWars is  a Multi User game based around the Pac Man theme for 
+IBM compatibles with 286 processors or above and register compatible 
+VGA cards.  Pacwars was written for Novell Netware ver 2.15.
+
+For maximum enjoyment PacWars should really be played with two or more
+players.
+ 
+We feel that pacwars still has great scope for growth and we would be 
+grateful for any suggestions for improving the game. 
+
+ADDITIONS TO PACWARS
+--------------------
+
+PacWars now allows you to edit characters, this function can be invoked
+by typing 
+	
+            PACWARS EDIT
+
+Here are a few instructions to help you along.
+
+The initial screen shows you a list of Current pacmen. Choose the one you wish
+to edit.  Saving from this page will update the characters used in the game.
+
+The second screen allows the selection of a frame for editing.  Another 
+character can be loaded into this position or the current one saved to its 
+own character file (ie. .PAC files).
+
+Once in the frame editor the F1 key brings up a help page.  The basic rules 
+are :-
+			Don't change the size of the sprite
+
+			Leave a trailing border, this wipes out the sprite as it moves
+
+				ie. first col, first & last row for characters
+					first two cols for bullets
+					no border for death sequence
+			
+
+Once finished you will be taken back to the initial screen select save to 
+save your current list of pacmen.
+
+
+OTHER DEVELOPMENTS
+------------------
+
+We are currently working on other Multi user games at the moment
+
+		1.  A multiuser Tank battle.
+
+        2.  Pacwars - The Sequel, this is similar to the Ultimate
+            games of yester year but with all the addictive elements of
+            the original Pacwars.
+
+			A screen grab from  Pacwars - The Sequel is included, just type
+            PWAR3D.
+
+Development of these products may be hindered due to lack of a network, but
+there are chances of us setting up a new network real soon.
+
+
+INSTRUCTIONS FOR PACWARS
+------------------------
+
+Moving
+------
+ 
+Use the arrow keys to move the pacman in the direction of the arrow.
+	
+Firing
+------
+
+The space bar enables the pac man to fire one bullet at a time.
+Each bullet costs 10 points so you will only be able to fire if you
+have enough cash. 
+
+	
+Invisibility
+------------
+
+Pressing the I key during game play will turn your pacman invisible 
+for about 10 seconds, during which time you will be unable to shoot.
+Invisibility will then not be available for another 20 seconds. However
+if any other player has the Infra red spectacles and enables them then
+they will be able to see you. If you have been killed recently then 
+invisibility will not be available for another 20 seconds.
+
+Gold
+----
+
+At random times during gameplay gold bars will appear in one of the 
+rooms of the playing field. This gold will be worth varying amounts.
+To collect 	the gold just run over it with your pac person. If any
+Pac Person shoots the gold they will become 'WANTED' and a bounty 
+will be awarded to whoever kills the outlaw. The person who is an
+outlaw is shown in the bottom right hand corner of the screen 
+alongside the prize given for killing them.
+
+Radar
+-----
+	
+When gold or any other special feature has appeared a flashing square 
+will appear on the layout map. This tells you which room the object
+is in. 
+
+
+Special features
+----------------
+
+Throughout gameplay special objects will appear, some will help, others
+will hinder.
+
+Invisible Shot. Gives you the ability to fire while invisible,
+great for catching pac people unawares. Beware of IR specs.
+
+Glass of beer. Worth five hundred points, however you will become
+drunk and will stagger while moving for a short period of time.  If
+shot everyone else in the room will become drunk.
+
+Glue pot. Take this and you are stuck where you stand for a shortish 
+period of time... Pretty Nasty this. Again if shot everyone else in
+the room will be stuck.
+
+Bomb. Take this and all other pac people in the same room as you will
+die. Shoot the bomb and everybody , including yourself, in that  room 
+will die.
+
+Infrared Spectacles. Gives you the ability to see invisible pac people
+press 'V' to invoke and follow those heat traces.
+
+Shield. Protects the wearer from bullets coming head-on. Press 'S' to
+invoke then make sure you are facing the bullets.  Run Away and your dead.
+
+Grenade. 'G' pulls the pin then press SPACE to throw. When the grenade 
+comes to a stop it will explode killing EVERYONE in the room. An object of 
+mass destruction useful when the PEARL is about.
+
+Warp. Each warp token gives you the ability to warp twice. To invoke
+press 'W' and you will appear in a different place .
+
+Bouncy Walls.  Bullets bounce off the walls allowing you to kill the 
+unwary, as well as yourself.
+	
+Homing Missile.  An excellent tool for revenge. Once you have picked
+up the homing missile  pressing  the 't' key  will place a missile 
+symbol next to person you wish to kill, the next time you press fire 
+the missile will begin to home in. Whilst the missile is in flight
+you will be unable to fire any bullets. You will get two missiles 
+for this token.
+
+Question Mark.   This can be any of the special features except of 
+course the Pearl.
+
+Pearl Pod.  At certain times a pod containing a pearl, or perhaps a
+question mark, will appear. We will let you figure out how to get the 
+contents of the pod yourself.
+
+A note about PacBaby.
+---------------------
+
+In the space between the last version of PacWars and this one, the
+creator of this game became the proud father of a little girl. The
+character PacBaby was added as a tribute to Iain's achievement 
+( and his wive's). You will notice there is no death sequence for 
+PacBaby, this was considered to be extreme bad taste (yes even for 
+us) so a congratulatory message is displayed instead.
+
+
+
+
+Scoring.
+--------
+
+Points 
+
+100         for shooting another Pac Person.
+5000        for collecting the Pearl.
+500         for collecting the beer.
+Random      for collecting the gold.
+Random      for killing an outlaw Pac Person.
+
+
+Installation.
+-------------
+
+At the moment the path is set up as  '.\' pacwars will look in the current 
+directory for the data files or use the following and put PACWARS.EXE in 
+the path.
+
+PACWARS PACPATH (directory path)     
+	
+i.e
+	
+PACWARS PACPATH F:\PACWARS\
+
+this will initialise pacwars to look in the directory specified by
+directory path for the sprite files and hiscore tables. Please remember
+the slash at the end of the path.
+
+To run pacwars change into the relevent directory and type
+	PACWARS
+_______________________________________________________________________________
+
+ON GOING DEVELOPMENTS
+
+Further Developments to Pacwars that are currently underway are as follows
+
+1.   Faster network handling - not a big change.
+     Support for Netware 386 - due to our old company going down the 
+     development of Pacwars has been slightly interrupted due to the
+     lack of a network.
+
+2.   Multiple mazes. Randomly chosen arenas.      
+
+3.   More people on at the same time.
+
+4.   Team Playing
+
+Obviously the above features will only be given to the people who register 
+Pacwars with us.
+
+
+PROFITPLAN
+
+
+Anyone who sent cheques to Profitplan for registration of Pacwars,
+after 6/11/90 should contact
+
+           PROFITPLAN IN LIQUIDATION
+           MOORES ROWLAND
+           ALLAN HOUSE 
+           25 BOTHWELL STREET
+           GLASGOW  G2 6NL
+          
+and ask for your cheques to be returned as Profitplan can no longer
+fulfill the terms of the registration.
+          
+
+
+PACWARS USER REGISTRATION 
+Version 1.5
+
+If you find Pacwars enjoyable then please consider registering your version
+with us. You will receive updates as and when they happen.
+
+To Register Pacwars please send a cheque or postal order for œ10 ($25) to 
+
+Iain Syme,
+John Syme & Co.
+Henderson Street,
+Bridge of Allan,
+Stirling
+SCOTLAND
+			
+along with the order form at the bottom of this file.
+Please make cheques or postal orders payable to Iain Syme.
+
+Conditions
+
+1.  You may make copies of the program and documentation, in their
+    original,  unmodified form,  without restriction.  You may
+    distribute these copies without restriction.
+
+2.  If these copies are distributed outside of your organization,  you
+    have no obligation to control the use of those copies which are
+    outside of your organization.
+
+3.  You may make copies of the program documentation, in both its
+    printed form and machine readable form, without restriction.
+
+4.  You may use all future versions of PacWars under this registration.
+
+5.  You may not modify the program or charge a fee for copying or
+    distributing the program or its documentation.
+
+6.  We are not responsible for any Consequences of the use of this
+    software, whether  or not such use has been authorised. We cannot be
+    held responsible for lack of productivity on any network that installs
+    Pacwars, in fact we are not responsible	for anything. The User assumes
+    the entire risk of running this software.
+
+	PACWARS REGISTRATION FORM:
+
+
+    I agree to abide by the terms and conditions of this license.
+
+    _____________________________         __________________________
+    Signature                             Date
+
+    _____________________________         __________________________
+    Name (please print or type)           Disk Type (3.5/5.25) 1.2mb etc
+
+    _____________________________
+    Title
+
+    _____________________________
+
+    ADDRESS
+            _____________________________
+
+            _____________________________
+
+            _____________________________
+
+    _____________________________
+	Telephone
+

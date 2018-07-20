@@ -1,0 +1,78 @@
+
+
+
+							PacWars
+							-------
+
+
+
+Welcome to the third version of Pacwars.  Since the last one the team have
+been liquidised, unemployed, re-employed and generally abused.  Hence this 
+version still does not run on Netware 386 (in fact we don't know if it runs
+at all) as no-one managed to claim the network and server as personal 
+property.  For the past four months there hasn't been a single cry of
+'No theres not a Pearl in here, Honest'. Are we cured - no just desperate 
+for a blast!
+
+This version incorporates a sprite editor, to enable the creation of 
+personalised PacPersons.  Is there someone in your office who deserves 
+to be shot in the back of the head.  Included for your entertainment and a 
+starter for ten are: Pac O'3, PacSaddam and PacStonk.  Any interesting 
+creations will be gratefully received/admired/thrown in the bin.  The best 
+will be distributed to registered users and included in future versions.
+'Fame At Last, eh!'
+
+Incorporated in this version are the following suggestions:
+
+		Increased High Score - now 655,000+
+G C		Grenade - select fire and run for the next room
+G		Warping Pearl - when shot may WARP to another location
+G C		Shield - Protects the wearer from bullets in one direction only
+		Warp - ghost pacman FEATURE has been removed
+C		Glue - if shot all other pac-persons in the room are GLUED
+C		Beer - if shot every-one else in the room parties
+
+Thanks to G - Grey Tide Systems & C - Compuware for the above.
+
+Coming sometime will be:
+
+	Support for SPX
+	TEAM games i.e. the Turds against the Bums
+	Maze layout & sprite editor.  More rooms!
+	Support for choice of different sessions & mazes from login screen
+			i.e. show which games are active and which mazes are being 
+			used
+	More players per session (given substantial increase in communications 
+			throughput)
+	Character save facility. Saves points, tokens, lives etc. when ESC is
+			pressed.
+
+Amazingly there have been six registrations, excuse me while I faint.
+Who says Shareware's a failure.  How am I supposed to keep the programming
+team on chinese meals on that.  On the subject of registration, Profitplan
+went into liquidation on the 6th November 1990, anyone who registered with 
+Profitplan after that date should write to the liquidator Moores Rowland, at
+the address supplied in the documentation, requesting the return of their 
+cheque.
+
+Under development by other members of the team are:
+
+		PacWars 3D - all your favourite characters in glorious 3 Dimensions,
+                     Nice graphics but, don't hold your breath.
+
+		TankWars   - Multi-User Tank Battle, authentic right down to the 
+                     primitive graphics.
+
+
+The idea of all this is to stimulate the creative juices of programmers around
+the world to write some decent games for Novell.  And allow me to get on with 
+some work and make a living.  Till next time I can be contacted on CIX c/o 
+
+                 aitken@cix.cix.UUCP
+
+Hopefully a network should be forth coming shortly and those deprived people
+who only have Netware 386 will be able to join in.  We've bought the Netware
+book and now we just have to learn to read.
+
+IAIN 
+
