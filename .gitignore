@@ -1,0 +1,5 @@
+build
+.pac_drv.asm
+.idea
+cmake-build-debug
+test
