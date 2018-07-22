@@ -69,3 +69,23 @@ netWareConnectionNumber  db 0
 v21HandlerSegment dw 0000h
 v21HandlerOffset  dw 0000h
 _ipxentry         dd 00000000h
+
+ecb times ECB.size db 0
+
+;mystruc:
+;    istruc ECB
+;      at LinkAddressOff, dw 0
+;      at LinkAddressSeg, dw 0
+;      at ESRAddressOff,  dw 0
+;      at ESRAddressSeg,  dw 0
+;      at InUse,          db 1
+;      at CompCode,       db 1
+;      at SockNum,        dw 1
+;      at IPXWorkSpc,     db 1
+;      at DrvWorkSpc,     db 12
+;      at ImmAdd,         db 6
+;      at FragCount,      dw 1
+;      at FragAddOfs,     dw 1
+;      at FragAddSeg,     dw 1
+;      at FragSize,       dw 1
+;    iend
