@@ -1,6 +1,6 @@
 ;;;;;;;;; IPX code ;;;;;;;;
 
-%define SOCKET_NUMBER 0x4001
+%define SOCKET_NUMBER 0x20 ; 0x2000 reversed into big endian
 
 struc ECB
     .linkAddressOff resw 1
@@ -10,7 +10,7 @@ struc ECB
     .inUse          resb 1
     .compCode       resb 1
     .socket         resw 1
-    .ipxWorkSpc     resw 1
+    .ipxWorkSpc     resd 1
     .drvWorkSpc     resb 12
     .immAdd         resb 6
     .fragCount      resw 1
@@ -67,6 +67,45 @@ ipxopensocket:
     mov al, 1       ; leave socket open until close called.
     mov dx, SOCKET_NUMBER  ; socket number ok
     mov bx,0000h
-    call far [_ipxentry]
+    call far [cs:_ipxentry]
     mov ah,00h
+    ret
+
+; listen for IPX packet.
+; Need to pass ECB address in es:si
+; returned status in al 0 on success 0xff on error
+ipxlistenforpacket:
+    push bx
+    mov bx,0004h
+    call far [cs:_ipxentry]
+    mov ah,00h
+    pop bx
+    ret
+
+; Relinquish control to the ipx driver.
+ipxrelinquishcontrol:
+    push bx
+    mov bx,000Ah
+    call far [cs:_ipxentry]
+    pop bx
+    ret
+
+ipxInitListenerECB:
+    push bx
+    push ax
+    lea bx, [recvECB]
+    mov word [cs:bx + ECB.esrAddressOff], 0
+    mov word [cs:bx + ECB.esrAddressSeg], 0
+    mov word [cs:bx + ECB.socket], SOCKET_NUMBER
+    mov byte [cs:bx + ECB.fragCount], 2
+    lea ax, [recvHeader]
+    mov word [cs:bx + ECB.fragHeaderOff], ax
+    mov word [cs:bx + ECB.fragHeaderSeg], cs
+    mov word [cs:bx + ECB.fragHeaderSize], IPXHEADER.size
+    lea ax, [recvBuffer]
+    mov word [cs:bx + ECB.fragBufOff], ax
+    mov word [cs:bx + ECB.fragBufSeg], cs
+    mov word [cs:bx + ECB.fragBufSize], 128
+    pop ax
+    pop bx
     ret

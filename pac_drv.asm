@@ -12,10 +12,22 @@ Start:
 
     call ipxinit
     cmp al, 0
+    mov dx, ipxErrorMsg
     jz _ipxInitFailed
 
     call ipxopensocket
     cmp al, 0
+    mov dx, ipxOpenErrMsg
+    jnz _ipxInitFailed
+
+    call ipxInitListenerECB
+
+    lea si, [recvECB]
+    mov ax, cs
+    mov es, ax
+    call ipxlistenforpacket
+    cmp al, 0
+    mov dx, ipxListenErrMsg
     jnz _ipxInitFailed
 
     ; Get current interrupt handler for INT 21h
@@ -37,8 +49,8 @@ Start:
     mov DX,00FFh                ; TODO work out final page size to reserve for the TSR logic.
     int 21h                     ; Call our own TSR program first, then call DOS
 
+    ;dx should contain offset to error message string.
 _ipxInitFailed:
-    mov dx, ipxErrorMsg         ; print out error message to the screen and exit.
     mov ah, 9
     int 21h
 
@@ -50,7 +62,7 @@ TSRStart:
     pushf
     cmp ah, 0xdc
     jnz existingHandler
-    mov al, [cs:netWareConnectionNumber]   ; Handle INT 21 DC. Netware: Get connection number.
+    call int21dcHandler
     popf
     iret
 
@@ -60,32 +72,23 @@ existingHandler:
     push WORD [cs:v21HandlerOffset]        ;   INT 21h handler onto the stack
     retf                                ; Jump to it!
 
+int21dcHandler:
+    call ipxrelinquishcontrol
+    mov al, [cs:netWareConnectionNumber]   ; Handle INT 21 DC. Netware: Get connection number.
+    ret
+
 %include 'ipx.asm'
 
 [SECTION .data]
 startMsg db 'PacWars IPX driver.', 0x0d, 0x0a, '$'
 ipxErrorMsg  db 'Error connecting to ipx', 0x0d, 0x0a, '$'
+ipxOpenErrMsg db 'Error opening socket', 0x0d, 0x0a, '$'
+ipxListenErrMsg db 'Error listening to socket', 0x0d, 0x0a, '$'
 netWareConnectionNumber  db 0
 v21HandlerSegment dw 0000h
 v21HandlerOffset  dw 0000h
 _ipxentry         dd 00000000h
 
-ecb times ECB.size db 0
-
-;mystruc:
-;    istruc ECB
-;      at LinkAddressOff, dw 0
-;      at LinkAddressSeg, dw 0
-;      at ESRAddressOff,  dw 0
-;      at ESRAddressSeg,  dw 0
-;      at InUse,          db 1
-;      at CompCode,       db 1
-;      at SockNum,        dw 1
-;      at IPXWorkSpc,     db 1
-;      at DrvWorkSpc,     db 12
-;      at ImmAdd,         db 6
-;      at FragCount,      dw 1
-;      at FragAddOfs,     dw 1
-;      at FragAddSeg,     dw 1
-;      at FragSize,       dw 1
-;    iend
+recvECB times ECB.size db 0
+recvHeader times IPXHEADER.size db 0
+recvBuffer times 128 db 0
