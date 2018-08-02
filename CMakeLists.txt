@@ -9,6 +9,7 @@ SET(CMAKE_ASM_NASM_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}/")
 set(SOURCE_FILES
         pac_drv.asm
         ipx.asm
+        netware.asm
 )
 
 add_custom_command(

@@ -61,10 +61,14 @@ _ipxInitFailed:
 TSRStart:
     pushf
     cmp ah, 0xdc
-    jnz existingHandler
-    call int21dcHandler
+    jnz .checkForNetware
+    call int21dcHandler    ; call int 21 dc. get connection number.
     popf
     iret
+
+.checkForNetware:
+    cmp ah, 0xe1
+    jz int21e1Handler     ; handle netware interrupt calls.
 
 existingHandler:
     popf
@@ -100,6 +104,7 @@ _int21dcHandlerRet:
     ret
 
 %include 'ipx.asm'
+%include 'netware.asm'
 
 [SECTION .data]
 startMsg db 'PacWars IPX driver.', 0x0d, 0x0a, '$'
@@ -111,6 +116,15 @@ v21HandlerSegment dw 0000h
 v21HandlerOffset  dw 0000h
 _ipxentry         dd 00000000h
 
+sendECB times ECB.size db 0
+sendHeader times IPXHEADER.size db 0
+sendBuffer times 128 db 0
+
 recvECB times ECB.size db 0
 recvHeader times IPXHEADER.size db 0
 recvBuffer times 128 db 0
+
+openPipeRequests times 100 db 0
+receivedPipeRequests times 100 db 0
+
+openConnections times 100 * 6 db 0

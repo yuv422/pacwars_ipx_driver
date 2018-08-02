@@ -109,3 +109,60 @@ ipxInitListenerECB:
     pop ax
     pop bx
     ret
+
+ipxInitBroadcastECB:
+    push bx
+    push ax
+    lea bx, [sendECB]
+    mov word [cs:bx + ECB.esrAddressOff], 0
+    mov word [cs:bx + ECB.esrAddressSeg], 0
+    mov word [cs:bx + ECB.socket], SOCKET_NUMBER
+
+    mov word [cs:bx + ECB.immAdd], 0xffff
+    mov word [cs:bx + ECB.immAdd + 2], 0xffff
+    mov word [cs:bx + ECB.immAdd + 4], 0xffff
+
+    mov byte [cs:bx + ECB.fragCount], 2
+    lea ax, [sendHeader]
+    mov word [cs:bx + ECB.fragHeaderOff], ax
+    mov word [cs:bx + ECB.fragHeaderSeg], cs
+    mov word [cs:bx + ECB.fragHeaderSize], IPXHEADER.size
+    lea ax, [sendBuffer]
+    mov word [cs:bx + ECB.fragBufOff], ax
+    mov word [cs:bx + ECB.fragBufSeg], cs
+    mov word [cs:bx + ECB.fragBufSize], 128
+
+    lea bx, [sendHeader]
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NetAddr], 0
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NetAddr + 2], 0
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NodeAddr], 0xffff
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NodeAddr + 2], 0xffff
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NodeAddr + 4], 0xffff
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.Socket], SOCKET_NUMBER
+    mov word [cs:bx + IPXHEADER.type], 4
+
+    pop ax
+    pop bx
+    ret
+
+ipxsendpacket:
+    push es
+    push si
+    push bx
+    mov ax, cs
+    mov es, ax
+    lea si, [sendECB]            ; load sendECB into es:si
+
+    mov bx, 3                    ;IPX send packet
+    call far [cs:_ipxentry]
+
+    pop bx
+    pop si
+    pop es
+    ret
+
+; send a message to all listeners on SOCKET_NUMBER
+ipxsendbroadcastmessage:
+    call ipxInitBroadcastECB
+    call ipxsendpacket
+    ret
