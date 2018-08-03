@@ -124,7 +124,4 @@ recvECB times ECB.size db 0
 recvHeader times IPXHEADER.size db 0
 recvBuffer times 128 db 0
 
-openPipeRequests times 100 db 0
-receivedPipeRequests times 100 db 0
-
-openConnections times 100 * 6 db 0
+netwarePipes times 100 * NETWARE_PIPE.size db 0
