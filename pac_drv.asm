@@ -103,8 +103,8 @@ _int21dcHandlerRet:
     pop bx
     ret
 
-%include 'ipx.asm'
 %include 'netware.asm'
+%include 'ipx.asm'
 
 [SECTION .data]
 startMsg db 'PacWars IPX driver.', 0x0d, 0x0a, '$'
@@ -119,6 +119,7 @@ _ipxentry         dd 00000000h
 sendECB times ECB.size db 0
 sendHeader times IPXHEADER.size db 0
 sendBuffer times 128 db 0
+sendPacketLength db 0
 
 recvECB times ECB.size db 0
 recvHeader times IPXHEADER.size db 0

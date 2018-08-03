@@ -130,7 +130,8 @@ ipxInitBroadcastECB:
     lea ax, [sendBuffer]
     mov word [cs:bx + ECB.fragBufOff], ax
     mov word [cs:bx + ECB.fragBufSeg], cs
-    mov word [cs:bx + ECB.fragBufSize], 128
+    mov ax, word [cs:sendPacketLength]
+    mov word [cs:bx + ECB.fragBufSize], ax
 
     lea bx, [sendHeader]
     mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NetAddr], 0

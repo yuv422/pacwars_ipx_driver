@@ -70,7 +70,12 @@ openPipeHandler:
     push si
     push di
     mov cl, byte [ds:si + 3] ; number of connections to open
-    mov byte [es:di], cl ; write the number of connections to the reply buffer.
+    mov bl, cl
+    mov bh, 0
+    inc bx
+    mov word [es:di], bx ; write the size of the reply buffer. number of connectios + 1
+
+    mov byte [es:di + 2], cl ; write the number of connections to the reply buffer.
     mov ch, 0
     add si, 3 ; advance si to point to connection number data
 
@@ -104,12 +109,19 @@ openPipeHandler:
     inc ch
     jmp .loopStart
 .loopEnd:
+    mov al, cl
+    add al, 2
+    mov byte [cs:sendPacketLength], al ; size of ipx packet. 2 header bytes + number of connection requests.
+    ;TODO write out ipx packet.
+    ; OPEN_PIPE_CMD
+    ; number of connections
+    ; connection list
     pop di
     pop si
     pop dx
     pop cx
     pop bx
-    call ipxsendbroadcastmessage
+    call ipxsendbroadcastmessage ; send ipx message.
     mov al, 0 ; success.
     jmp _netwareExitInterrupt
 
