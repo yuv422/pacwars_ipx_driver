@@ -13,6 +13,12 @@ struc NETWARE_PIPE
 .size:
 endstruc
 
+struc IPX_COMMAND_HEADER
+    .command resb 1
+    .length resb 1
+.size:
+endstruc
+
 %define SEND_PACKET_CMD 1
 %define OPEN_PIPE_CMD 2
 %define CLOSE_PIPE_CMD 3
@@ -85,6 +91,15 @@ openPipeHandler:
     ;TODO loop body
 
     mov al, byte [ds:si] ; load connection number.
+    lea bx, [sendBuffer]
+    add bx, IPX_COMMAND_HEADER.size       ; skip over ipx command header bytes
+    push ax
+    mov al, ch
+    mov ah, 0
+    add bx, ax           ; bx = &sendBuffer[2 + ch]
+    pop ax
+    mov byte [cs:bx], al ; write connection number to ipx send buffer.
+
     cmp al, 0      ; if(connectionNumber == 0) continue;
     jz .continue
     dec al    ; connectionNumber--
@@ -110,12 +125,13 @@ openPipeHandler:
     jmp .loopStart
 .loopEnd:
     mov al, cl
-    add al, 2
+    add al, IPX_COMMAND_HEADER.size
     mov byte [cs:sendPacketLength], al ; size of ipx packet. 2 header bytes + number of connection requests.
-    ;TODO write out ipx packet.
-    ; OPEN_PIPE_CMD
-    ; number of connections
-    ; connection list
+
+    lea bx, [sendBuffer]              ; write ipx send header details
+    mov byte [cs:bx + IPX_COMMAND_HEADER.command], OPEN_PIPE_CMD   ; write command byte
+    mov byte [cs:bx + IPX_COMMAND_HEADER.length], cl               ; write number of connections
+
     pop di
     pop si
     pop dx
