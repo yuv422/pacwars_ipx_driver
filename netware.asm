@@ -79,7 +79,7 @@ openPipeHandler:
     mov bl, cl
     mov bh, 0
     inc bx
-    mov word [es:di], bx ; write the size of the reply buffer. number of connectios + 1
+    mov word [es:di], bx ; write the size of the reply buffer. number of connections + 1
 
     mov byte [es:di + 2], cl ; write the number of connections to the reply buffer.
     mov ch, 0
