@@ -83,7 +83,7 @@ openPipeHandler:
 
     mov byte [es:di + 2], cl ; write the number of connections to the reply buffer.
     mov ch, 0
-    add si, 3 ; advance si to point to connection number data
+    add si, 4 ; advance si to point to connection number data
 
 .loopStart:              ; loop over all requested connections
     cmp ch, cl
