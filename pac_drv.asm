@@ -3,6 +3,9 @@
 
 [SECTION .text]
 
+%define SOCKET_NUMBER 0x20 ; 0x2000 reversed into big endian. This socket handles get/recv packets.
+%define BROADCAST_SOCKET_NUMBER 0x0120 ; 0x2001 reversed into big endian. This socket handles all pipe open/close messages.
+
 Start:
     mov dx, startMsg ; Show start message.
     mov ah, 9
@@ -15,9 +18,28 @@ Start:
     mov dx, ipxErrorMsg
     jz _ipxInitFailed
 
+    ; open both sockets.
+    mov dx, SOCKET_NUMBER
     call ipxopensocket
     cmp al, 0
     mov dx, ipxOpenErrMsg
+    jnz _ipxInitFailed
+
+    mov dx, BROADCAST_SOCKET_NUMBER
+    call ipxopensocket
+    cmp al, 0
+    mov dx, ipxOpenErrMsg
+    jnz _ipxInitFailed
+
+    lea ax, [netwareESR]             ; pass in the ESR handler offset to initialise the ECB.
+                                     ; The segment is CS so we don't send it
+    call ipxInitBroadcastListenerECB
+    lea si, [recvBroadcastECB]
+    mov ax, cs
+    mov es, ax
+    call ipxlistenforpacket          ; listen for broadcast messages on 0x2001 and handle them with netwareESR:
+    cmp al, 0
+    mov dx, ipxListenErrMsg
     jnz _ipxInitFailed
 
     call ipxInitListenerECB
@@ -124,5 +146,9 @@ sendPacketLength db 0
 recvECB times ECB.size db 0
 recvHeader times IPXHEADER.size db 0
 recvBuffer times 128 db 0
+
+recvBroadcastECB times ECB.size db 0
+recvBroadcastHeader times IPXHEADER.size db 0
+recvBroadcastBuffer times 128 db 0
 
 netwarePipes times 100 * NETWARE_PIPE.size db 0

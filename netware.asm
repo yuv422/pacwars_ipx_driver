@@ -65,6 +65,9 @@ getPacketHandler:
     pop ax
     jmp _netwareExitInterrupt
 
+;;;;;;;;;;;;;;;; Netware - Open connection pipes ;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 openPipeHandler:
     pop ax
     ; set requested pipe array based on values in
@@ -141,15 +144,97 @@ openPipeHandler:
     mov al, 0 ; success.
     jmp _netwareExitInterrupt
 
+;;;;;;;;;;;;;;;; Netware - Close pipes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 closePipeHandler:
     pop ax
     call ipxsendbroadcastmessage
     jmp _netwareExitInterrupt
 
+
+;;;;;;;;;;;;;;;; Netware - Check pipe status ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 checkPipeStatusHandler:
     pop ax
+    ; check pipe status for connection array based on values in
+    ; number of pipe requests in byte at ds:si + 3
+    ; connection numbers stored at ds:si + 4
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+    mov cl, byte [ds:si + 3] ; number of connections to check
+    mov bl, cl
+    mov bh, 0
+    inc bx
+    mov word [es:di], bx ; write the size of the reply buffer. number of connections + 1
+
+    mov byte [es:di + 2], cl ; write the number of connections to the reply buffer.
+    mov ch, 0
+    add si, 4 ; advance si to point to connection number data
+
+.loopStart:              ; loop over all pipe connections to check
+    cmp ch, cl
+    jge .loopEnd
+
+    mov al, byte [ds:si] ; load connection number.
+
+    cmp al, 0      ; if(connectionNumber == 0) continue;
+    jz .continue
+    dec al    ; connectionNumber--
+    mov dl, NETWARE_PIPE.size
+    mul dl   ; ax = al * dl
+    lea bx, [netwarePipes]
+    add bx, ax   ; bx = netwarePipes[connectionNumber - 1];
+
+    mov al, byte [cs:bx + NETWARE_PIPE.pipeStatus] ; get existing pipe status for connection
+
+    mov ah, 0xfe ; pipe connection incomplete status
+    cmp al, 0 ; check if pipe is closed
+    jnz .checkForOpen
+    mov ah, 0xff ; closed status
+    jmp .writeStatus
+.checkForOpen:
+    cmp al, 3 ; check if pipe connected
+    jnz .writeStatus
+    mov ah, 0 ; successfully connected pipe status
+.writeStatus:
+    mov byte [es:di + 1], ah
+.continue:
+    inc di
+    inc si ; increment si to point to next connection number.
+    inc ch
+    jmp .loopStart
+.loopEnd:
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    mov al, 0xfe ; success.
     jmp _netwareExitInterrupt
 
 _netwareExitInterrupt:
     popf
     iret
+
+;;;;;;;;;; Netware broadcast listener ESR ;;;;;;;;;;;;;;;;;;;
+; call back used to process broadcast messages open/close pipe, connection established.
+
+netwareESR:
+    ; TODO handle send/close/conn established messages here.
+    mov al, byte [es:si + IPX_COMMAND_HEADER.command] ; read the command from the incoming message
+    cmp al, OPEN_PIPE_CMD
+    jz .openPipeCommand
+    cmp al, CLOSE_PIPE_CMD
+    jz .closePipeCommand
+    retf
+
+.openPipeCommand:
+    retf
+
+.closePipeCommand:
+    retf

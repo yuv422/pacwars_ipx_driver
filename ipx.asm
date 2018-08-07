@@ -1,6 +1,5 @@
 ;;;;;;;;; IPX code ;;;;;;;;
 
-%define SOCKET_NUMBER 0x20 ; 0x2000 reversed into big endian
 
 struc ECB
     .linkAddressOff resw 1
@@ -62,13 +61,16 @@ _ipxinit0:
     ret
 
 ; open ipx socket.
+; socket number passed in DX
 ; status returned in al. 0 == success, 0xff == socket already open, 0xfe == socket table full.
 ipxopensocket:
+    push bx
     mov al, 1       ; leave socket open until close called.
-    mov dx, SOCKET_NUMBER  ; socket number ok
     mov bx,0000h
+    ;socket number is in DX
     call far [cs:_ipxentry]
     mov ah,00h
+    pop bx
     ret
 
 ; listen for IPX packet.
@@ -110,13 +112,34 @@ ipxInitListenerECB:
     pop bx
     ret
 
+; passing in the ESR offset in AX.
+ipxInitBroadcastListenerECB:
+    push bx
+    push ax
+    lea bx, [recvBroadcastECB]
+    mov word [cs:bx + ECB.esrAddressOff], ax
+    mov word [cs:bx + ECB.esrAddressSeg], cs
+    mov word [cs:bx + ECB.socket], BROADCAST_SOCKET_NUMBER
+    mov byte [cs:bx + ECB.fragCount], 2
+    lea ax, [recvBroadcastHeader]
+    mov word [cs:bx + ECB.fragHeaderOff], ax
+    mov word [cs:bx + ECB.fragHeaderSeg], cs
+    mov word [cs:bx + ECB.fragHeaderSize], IPXHEADER.size
+    lea ax, [recvBroadcastBuffer]
+    mov word [cs:bx + ECB.fragBufOff], ax
+    mov word [cs:bx + ECB.fragBufSeg], cs
+    mov word [cs:bx + ECB.fragBufSize], 128
+    pop ax
+    pop bx
+    ret
+
 ipxInitBroadcastECB:
     push bx
     push ax
     lea bx, [sendECB]
     mov word [cs:bx + ECB.esrAddressOff], 0
     mov word [cs:bx + ECB.esrAddressSeg], 0
-    mov word [cs:bx + ECB.socket], SOCKET_NUMBER
+    mov word [cs:bx + ECB.socket], BROADCAST_SOCKET_NUMBER
 
     mov word [cs:bx + ECB.immAdd], 0xffff
     mov word [cs:bx + ECB.immAdd + 2], 0xffff
@@ -139,7 +162,7 @@ ipxInitBroadcastECB:
     mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NodeAddr], 0xffff
     mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NodeAddr + 2], 0xffff
     mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NodeAddr + 4], 0xffff
-    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.Socket], SOCKET_NUMBER
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.Socket], BROADCAST_SOCKET_NUMBER
     mov word [cs:bx + IPXHEADER.type], 4
 
     pop ax
