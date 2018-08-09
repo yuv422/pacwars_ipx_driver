@@ -15,6 +15,7 @@ endstruc
 
 struc IPX_COMMAND_HEADER
     .command resb 1
+    .connectionNumber resb 1
     .length resb 1
     .data:
 .size:
@@ -121,7 +122,7 @@ openPipeHandler:
     jnz .writeStatus
     mov ah, 0 ; successfully connected pipe status
 .writeStatus:
-    mov byte [es:di + 1], ah
+    mov byte [es:di + 3], ah
 .continue:
     inc di
     inc si ; increment si to point to next connection number.
@@ -134,6 +135,8 @@ openPipeHandler:
 
     lea bx, [sendBuffer]              ; write ipx send header details
     mov byte [cs:bx + IPX_COMMAND_HEADER.command], OPEN_PIPE_CMD   ; write command byte
+    mov al, byte [cs:netWareConnectionNumber]
+    mov byte [cs:bx + IPX_COMMAND_HEADER.connectionNumber], al     ; write our connection number to msg.
     mov byte [cs:bx + IPX_COMMAND_HEADER.length], cl               ; write number of connections
 
     pop di
@@ -203,7 +206,7 @@ checkPipeStatusHandler:
     jnz .writeStatus
     mov ah, 0 ; successfully connected pipe status
 .writeStatus:
-    mov byte [es:di + 1], ah
+    mov byte [es:di + 3], ah
 .continue:
     inc di
     inc si ; increment si to point to next connection number.
@@ -238,7 +241,19 @@ netwareESR:
     call doesCommandTargetMe ; check if this command is targeting us.
     cmp al, 0
     jz .exitESR
-    ; TODO set remote connection open in netwarePipes and send connection established message.
+    mov al, byte [cs:recvBroadcastBuffer + IPX_COMMAND_HEADER.connectionNumber] ; get the connection number of the sender.
+    dec al
+    lea bx, [netwarePipes]
+    mov dl, NETWARE_PIPE.size
+    mul dl                     ; ax = (SenderConnectionNumber - 1) * NETWARE_PIPE.size
+    add bx, ax
+    mov al, byte [cs:bx + NETWARE_PIPE.pipeStatus]     ; get pipe status for the sending connection number
+    or al, 2 ; set the sender requested open flag in status
+    mov byte [cs:bx + NETWARE_PIPE.pipeStatus], al
+
+    ; TODO write sender addr to netwarePipes[senderConnectionNumber]
+    ; TODO Send connection established message back to sender if we have previously attempted to connect.
+
     jmp .exitESR
 
 .closePipeCommand:
@@ -249,7 +264,12 @@ netwareESR:
     jmp .exitESR
 
 .exitESR:
-    ; TODO re-listen to ECB here.
+    ; setup ECB to listen for another packet.
+    lea si, [recvBroadcastECB]
+    mov ax, cs
+    mov es, ax
+    call ipxlistenforpacket          ; listen for broadcast messages on 0x2001 and handle them with netwareESR:
+
     retf
 
 ; returns 1 in AL if our connection number is contained in the connection list. 0 is returned otherwise.
