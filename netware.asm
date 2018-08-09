@@ -16,6 +16,7 @@ endstruc
 struc IPX_COMMAND_HEADER
     .command resb 1
     .length resb 1
+    .data:
 .size:
 endstruc
 
@@ -214,7 +215,7 @@ checkPipeStatusHandler:
     pop dx
     pop cx
     pop bx
-    mov al, 0xfe ; success.
+    mov al, 0 ; success.
     jmp _netwareExitInterrupt
 
 _netwareExitInterrupt:
@@ -226,15 +227,55 @@ _netwareExitInterrupt:
 
 netwareESR:
     ; TODO handle send/close/conn established messages here.
-    mov al, byte [es:si + IPX_COMMAND_HEADER.command] ; read the command from the incoming message
+    mov al, byte [cs:recvBroadcastBuffer + IPX_COMMAND_HEADER.command] ; read the command from the incoming message
     cmp al, OPEN_PIPE_CMD
     jz .openPipeCommand
     cmp al, CLOSE_PIPE_CMD
     jz .closePipeCommand
-    retf
+    jmp .exitESR
 
 .openPipeCommand:
-    retf
+    call doesCommandTargetMe ; check if this command is targeting us.
+    cmp al, 0
+    jz .exitESR
+    ; TODO set remote connection open in netwarePipes and send connection established message.
+    jmp .exitESR
 
 .closePipeCommand:
+    call doesCommandTargetMe ; check if this command is targeting us.
+    cmp al, 0
+    jz .exitESR
+    ; TODO set remote connection to closed in netwarePipes
+    jmp .exitESR
+
+.exitESR:
+    ; TODO re-listen to ECB here.
     retf
+
+; returns 1 in AL if our connection number is contained in the connection list. 0 is returned otherwise.
+; AH is trashed.
+doesCommandTargetMe:
+    push bx
+    push cx
+    lea bx, [recvBroadcastBuffer]
+    mov cl, byte [cs:recvBroadcastBuffer + IPX_COMMAND_HEADER.length] ; get number of connections in the command
+    mov ch, 0 ; loop counter
+.loopStart:
+    cmp ch, cl
+    jge .loopEnd
+    mov ah, byte [cs:bx + IPX_COMMAND_HEADER.data] ; get the connection number
+    mov al, byte [cs:netWareConnectionNumber]
+    cmp ah, al
+    jz .foundEntry ; if current connection number == our connection number then return true.
+    inc bx
+    inc ch
+    jmp .loopStart
+.loopEnd:
+    mov al, 0   ; we didn't find out connection number in the list
+    jmp .return
+.foundEntry:
+    mov al, 1   ; success we founbd our connection number.
+.return:
+    pop cx
+    pop bx
+    ret

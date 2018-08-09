@@ -11,9 +11,9 @@ Start:
     mov ah, 9
     int 21h
 
-    mov byte [netWareConnectionNumber], 2
+    call setConnectionNumber ; load connection number from cmomand line. 1-9
 
-    call ipxinit
+    call ipxinit              ; load IPX
     cmp al, 0
     mov dx, ipxErrorMsg
     jz _ipxInitFailed
@@ -78,6 +78,15 @@ _ipxInitFailed:
 
     mov ax, 0x4c00
     int 21h                     ; Exit to dos.
+
+setConnectionNumber: ;load our connection number from command line.
+    push ax
+    mov al, byte [ds:0x82] ; this should be the location of the first character on the commandline contained in the PSP.
+    sub al, 0x30 ; convert ascii char to connection number.
+                 ; TODO this needs more work. There is no input checking and it only accepts 1-9 connection numbers.
+    mov byte [cs:netWareConnectionNumber], al ; set connection number.
+    pop ax
+    ret
 
 ;;;;;;;; TSR Handler routine. ;;;;;;;;;;;;;;
 TSRStart:
