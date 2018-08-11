@@ -169,6 +169,54 @@ ipxInitBroadcastECB:
     pop bx
     ret
 
+; destination ipx address in CS:DI
+ipxInitDirectSendECB:
+    push bx
+    push ax
+    lea bx, [sendECB]
+    mov word [cs:bx + ECB.esrAddressOff], 0
+    mov word [cs:bx + ECB.esrAddressSeg], 0
+    mov word [cs:bx + ECB.socket], SOCKET_NUMBER
+
+    mov ax, word [cs:di + IPXADDRESS.NodeAddr]
+    mov word [cs:bx + ECB.immAdd], ax
+    mov ax, word [cs:di + IPXADDRESS.NodeAddr + 2]
+    mov word [cs:bx + ECB.immAdd + 2], ax
+    mov ax, word [cs:di + IPXADDRESS.NodeAddr + 4]
+    mov word [cs:bx + ECB.immAdd + 4], ax
+
+    mov byte [cs:bx + ECB.fragCount], 2
+    lea ax, [sendHeader]
+    mov word [cs:bx + ECB.fragHeaderOff], ax
+    mov word [cs:bx + ECB.fragHeaderSeg], cs
+    mov word [cs:bx + ECB.fragHeaderSize], IPXHEADER.size
+    lea ax, [sendBuffer]
+    mov word [cs:bx + ECB.fragBufOff], ax
+    mov word [cs:bx + ECB.fragBufSeg], cs
+    mov ax, word [cs:sendPacketLength]
+    mov word [cs:bx + ECB.fragBufSize], ax
+
+    lea bx, [sendHeader]
+
+    mov ax, word [cs:di + IPXADDRESS.NetAddr]
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NetAddr], ax
+    mov ax, word [cs:di + IPXADDRESS.NetAddr + 2]
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NetAddr + 2], ax
+
+    mov ax, word [cs:di + IPXADDRESS.NodeAddr]
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NodeAddr], ax
+    mov ax, word [cs:di + IPXADDRESS.NodeAddr + 2]
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NodeAddr + 2], ax
+    mov ax, word [cs:di + IPXADDRESS.NodeAddr + 4]
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.NodeAddr + 4], ax
+
+    mov word [cs:bx + IPXHEADER.dest + IPXADDRESS.Socket], SOCKET_NUMBER
+    mov word [cs:bx + IPXHEADER.type], 4
+
+    pop ax
+    pop bx
+    ret
+
 ipxsendpacket:
     push es
     push si

@@ -9,6 +9,7 @@ struc NETWARE_PIPE
                            ; 1 = connection request sent
                            ; 2 = connection request received
                            ; 3 = connected. :-)
+    .ipxAddress:
     .remoteNetAddr  resb 4 ; address of the remote computer.
     .remoteNodeAddr resb 6
 
@@ -20,6 +21,14 @@ struc IPX_COMMAND_HEADER
     .connectionNumber resb 1
     .length resb 1
     .data:
+.size:
+endstruc
+
+struc NETWARE_SEND
+    .length resw 1
+    .subFunction resb 1
+    .numConnections resb 1
+    .connectionList:
 .size:
 endstruc
 
@@ -53,7 +62,7 @@ int21e1Handler:
 
 .checkSubfunction8:
     cmp al, 8
-    jz checkPipeStatusHandler
+    jz near checkPipeStatusHandler
     ; fall through to existing handler.
 
 .existingHandler:
@@ -63,6 +72,21 @@ int21e1Handler:
 
 sendPacketHandler:
     pop ax
+    ; request buffer in DS:SI
+    ; reply buffer in ES:DI
+    ; write message to open pipes
+    push ax
+    mov al, byte [si + NETWARE_SEND.numConnections]
+    mov byte [es:di + 2], al ; write the number of connections to reply buffer.
+    inc al
+    mov ah, 0
+    mov word [es:di], ax ; write length of reply data. num connections + 1
+
+
+    mov al, byte [si + NETWARE_SEND.connectionList] ; send packet to first connection in the list.
+    call sendPacketToPipe
+    pop ax
+
     jmp _netwareExitInterrupt
 
 getPacketHandler:
@@ -321,4 +345,67 @@ doesCommandTargetMe:
 .return:
     pop cx
     pop bx
+    ret
+
+; send the netware packet to a given pipe.
+; connection number passed in through AL
+; netware request in DS:SI
+sendPacketToPipe:
+    push ax
+    push bx
+    push dx
+    push si
+    push di
+    push es
+    mov dl, al ; dl = connectionNumber to send to.
+
+
+    mov al, byte [si + NETWARE_SEND.numConnections] ; number of connections to send to
+    add si, NETWARE_SEND.connectionList
+    mov ah, 0
+    add si, ax ; advance si pointer to the start of the packet data.
+               ; NETWARE_SEND.connectionList + number of connections
+
+    mov al, [si] ; number of bytes to send
+    inc si       ; si points to packet data.
+
+    mov cx, ax   ; cx = number of bytes to send.
+
+    inc al
+    mov byte [cs:sendPacketLength], al ; store total packet length. netware packet + 1 byte for connection number.
+
+    mov ax, cs
+    mov es, ax           ; es=cs
+    lea di, [sendBuffer] ; es:di = &sendBuffer
+
+    mov al, byte [cs:netWareConnectionNumber]
+    mov byte [es:di], al   ; write our connection number to start of sendBuffer.
+    inc di
+
+    ; write packet to sendBuffer
+    ;cx number of bytes to copy.
+    ;si netware packet data
+    ;di &sendBuffer[1]
+    rep movsb   ; copy bytes.
+
+    ; get netwarePipe address for destConnectionNumber.
+
+    lea di, [netwarePipes]
+    dec dl  ; destConnectionNumber - 1
+    mov al, NETWARE_PIPE.size
+    mul dl  ; ax = (destConnectionNumber - 1) * netwarePipes.size
+    add di, ax ; di now pointing at netwarePipes[destConnectionNumber-1]
+    add di, NETWARE_PIPE.ipxAddress ; di = &netwarePipes[destConnectionNumber-1].remoteNetAddr
+
+    ; send packet
+
+    call ipxInitDirectSendECB ; destination address in CS:DI
+    call ipxsendpacket        ; send to remote computer.
+
+    pop es
+    pop di
+    pop si
+    pop dx
+    pop bx
+    pop ax
     ret
