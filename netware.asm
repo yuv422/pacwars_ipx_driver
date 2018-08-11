@@ -9,7 +9,9 @@ struc NETWARE_PIPE
                            ; 1 = connection request sent
                            ; 2 = connection request received
                            ; 3 = connected. :-)
-    .remoteAddress resb 6  ; address of the remote computer.
+    .remoteNetAddr  resb 4 ; address of the remote computer.
+    .remoteNodeAddr resb 6
+
 .size:
 endstruc
 
@@ -251,7 +253,10 @@ netwareESR:
     or al, 2 ; set the sender requested open flag in status
     mov byte [cs:bx + NETWARE_PIPE.pipeStatus], al
 
-    ; TODO write sender addr to netwarePipes[senderConnectionNumber]
+    call writeSenderHeaderToPipeList ; write sender address to pipe record currently pointed to by CS:BX
+    cmp al, 3 ; check if we're connected now.
+    jnz .exitESR
+    ; We're connected here.
     ; TODO Send connection established message back to sender if we have previously attempted to connect.
 
     jmp .exitESR
@@ -271,6 +276,24 @@ netwareESR:
     call ipxlistenforpacket          ; listen for broadcast messages on 0x2001 and handle them with netwareESR:
 
     retf
+
+;;; write the sender address to the netwarePipe record.
+; netware pipe record address passed in BX
+writeSenderHeaderToPipeList:
+    ; copy from ECB.header.source to cs:BX + remoteNetAddr. 10 bytes
+    push ax
+    mov ax, word [cs:recvBroadcastHeader + IPXHEADER.source]
+    mov word [cs:bx + NETWARE_PIPE.remoteNetAddr], ax
+    mov ax, word [cs:recvBroadcastHeader + IPXHEADER.source + 2]
+    mov word [cs:bx + NETWARE_PIPE.remoteNetAddr + 2], ax
+    mov ax, word [cs:recvBroadcastHeader + IPXHEADER.source + 4]
+    mov word [cs:bx + NETWARE_PIPE.remoteNetAddr + 4], ax
+    mov ax, word [cs:recvBroadcastHeader + IPXHEADER.source + 6]
+    mov word [cs:bx + NETWARE_PIPE.remoteNetAddr + 6], ax
+    mov ax, word [cs:recvBroadcastHeader + IPXHEADER.source + 8]
+    mov word [cs:bx + NETWARE_PIPE.remoteNetAddr + 8], ax
+    pop ax
+    ret
 
 ; returns 1 in AL if our connection number is contained in the connection list. 0 is returned otherwise.
 ; AH is trashed.
