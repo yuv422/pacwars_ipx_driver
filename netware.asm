@@ -76,15 +76,46 @@ sendPacketHandler:
     ; reply buffer in ES:DI
     ; write message to open pipes
     push ax
+    push bx
+    push cx
+    push dx
     mov al, byte [si + NETWARE_SEND.numConnections]
+    mov cl, al ; number of connections to send to.
     mov byte [es:di + 2], al ; write the number of connections to reply buffer.
     inc al
     mov ah, 0
     mov word [es:di], ax ; write length of reply data. num connections + 1
 
+    mov dx, di
+    add dx, 3      ; dx points to start of reply buffer connection status list
 
-    mov al, byte [si + NETWARE_SEND.connectionList] ; send packet to first connection in the list.
+    mov ch, 0
+    mov bx, si
+    add bx, NETWARE_SEND.connectionList ; bx pointing to start of connection list.
+.loopStart:
+    cmp ch, cl    ; while (ch < numConnections)
+    jge .loopEnd
+
+    mov al, byte [bx] ; get next connection number from list
+    call getConnectionStatus ; status returned in AH
+
+    push bx
+    mov bx, dx
+    mov byte [es:bx], ah   ; write connection status out to reply buffer.
+    pop bx
+    cmp ah, 0
+    jnz .skipSend          ; only send if connected. eg connections status == 0
     call sendPacketToPipe
+.skipSend:
+    inc dx
+    inc bx
+    inc ch
+    jmp .loopStart
+.loopEnd:
+
+    pop dx
+    pop cx
+    pop bx
     pop ax
 
     jmp _netwareExitInterrupt
@@ -341,9 +372,48 @@ doesCommandTargetMe:
     mov al, 0   ; we didn't find out connection number in the list
     jmp .return
 .foundEntry:
-    mov al, 1   ; success we founbd our connection number.
+    mov al, 1   ; success we found our connection number.
 .return:
     pop cx
+    pop bx
+    ret
+
+; gets the current connection status for a given connection number
+; connection number passed in with AL
+; status returned in AH
+; 0xff not connected
+; 0xfe partially connected
+; 0 connected
+getConnectionStatus:
+    push bx
+    push dx
+
+    mov ah, 0xff   ; not connected.
+    cmp al, 0
+    jz .return
+
+    push ax
+    dec al
+    lea bx, [netwarePipes]
+    mov dl, NETWARE_PIPE.size
+    mul dl                     ; ax = (ConnectionNumber - 1) * NETWARE_PIPE.size
+    add bx, ax
+    pop ax ; restore al back to original connection number.
+
+    mov dl, byte [cs:bx + NETWARE_PIPE.pipeStatus]     ; get pipe status for the sending connection number
+
+    ; check the connection status
+    mov ah, 0xfe ; incomplete connection.
+    cmp dl, 0
+    jnz .checkForConnected
+    mov ah, 0xff ; not connected
+    jmp .return
+.checkForConnected:
+    cmp dl, 3
+    jnz .return
+    mov ah, 0 ; connected status
+.return:
+    pop dx
     pop bx
     ret
 
@@ -353,6 +423,7 @@ doesCommandTargetMe:
 sendPacketToPipe:
     push ax
     push bx
+    push cx
     push dx
     push si
     push di
@@ -406,6 +477,7 @@ sendPacketToPipe:
     pop di
     pop si
     pop dx
+    pop cx
     pop bx
     pop ax
     ret
