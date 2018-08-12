@@ -32,6 +32,14 @@ struc NETWARE_SEND
 .size:
 endstruc
 
+struc NETWARE_GET_REPLY
+    .length resw 1
+    .senderConnectionNumber resb 1
+    .msgLength resb 1
+    .message:
+.size:
+endstruc
+
 %define SEND_PACKET_CMD 1
 %define OPEN_PIPE_CMD 2
 %define CLOSE_PIPE_CMD 3
@@ -120,8 +128,70 @@ sendPacketHandler:
 
     jmp _netwareExitInterrupt
 
+;;;;;;;;;;;;;;;; Netware - Get Personal Message ;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 getPacketHandler:
+    ; reply in ES:DI
     pop ax
+    push bx
+    push cx
+    call ipxrelinquishcontrol  ; give some time back to the ipx driver
+    lea bx, [recvECB]
+    mov al, byte [cs:bx + ECB.inUse]
+    cmp al, 0                          ; check to see if ecb has a message waiting for us.
+    jnz .noMessage
+
+    lea bx, [recvHeader]
+    mov cx, word [cs:bx + IPXHEADER.length] ; length will be in cl
+
+    ; length is msg + 1 byte for connection number. Output length is msg + 2 bytes.
+    inc cx
+    mov word [es:di], cx ; write length to reply buffer (msgLength + 2)
+    dec cx
+    dec cx ; cx is now the length of the message data.
+    mov byte [es:di + 3], cl ; write length of message to reply buffer
+
+    push si
+    push di
+    push ds
+
+    push cs
+    pop ds ; ds = cs
+    lea si, [recvBuffer]
+    mov al, byte [ds:si] ; get sender connection number.
+    mov byte [es:di + 2], al ; write sender connection number to reply buffer
+    inc si ; move to start of message data.
+
+    add di, 4 ; move pointer to start of message data in reply buffer.
+
+    rep movsb ; copy message data to reply buffer.
+
+    pop ds
+    pop di
+    pop si
+
+    call ipxInitListenerECB    ; reset listener ECB
+    push es
+    push si
+    push cs
+    pop es   ; es = cs
+    lea si, [recvECB]
+    call ipxlistenforpacket ; setup ECB to listen for packet.
+    pop si
+    pop es
+
+    jmp .exit
+
+.noMessage:
+    mov word [es:di + NETWARE_GET_REPLY.length], 2
+    mov word [es:di + NETWARE_GET_REPLY.senderConnectionNumber], 0
+    mov word [es:di + NETWARE_GET_REPLY.msgLength], 0
+
+.exit:
+    pop cx
+    pop bx
+    mov al, 0 ; success.
     jmp _netwareExitInterrupt
 
 ;;;;;;;;;;;;;;;; Netware - Open connection pipes ;;;;;;;;;;;;;;;;;;;;;;;

@@ -109,29 +109,7 @@ existingHandler:
 
 int21dcHandler:
     call ipxrelinquishcontrol
-    push bx
-    lea bx, [recvECB]
-    mov al, byte [cs:bx + ECB.inUse]
-    cmp al, 0                          ; check to see if ecb has a message waiting for us.
-    jnz _int21dcHandlerRet
-
-    lea bx, [recvBuffer]               ; we've got a message
-    mov al, byte [cs:bx]
-    mov byte [cs:netWareConnectionNumber], al
-
-    call ipxInitListenerECB    ; reset listener ECB
-    push es
-    push si
-    mov ax, cs
-    mov es, ax
-    lea si, [recvECB]
-    call ipxlistenforpacket ; setup ECB to listen for packet.
-    pop si
-    pop es
-
-_int21dcHandlerRet:
     mov al, [cs:netWareConnectionNumber]   ; Handle INT 21 DC. Netware: Get connection number.
-    pop bx
     ret
 
 %include 'netware.asm'
