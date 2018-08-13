@@ -143,7 +143,10 @@ getPacketHandler:
     jnz .noMessage
 
     lea bx, [recvHeader]
-    mov cx, word [cs:bx + IPXHEADER.length] ; length will be in cl
+    mov cx, word [cs:bx + IPXHEADER.length] ; length is packet length + 30 byte header (big endian)
+    xchg cl, ch ; swap endian
+    sub cx, 30 ; remove header
+    ; cl = packet length
 
     ; length is msg + 1 byte for connection number. Output length is msg + 2 bytes.
     inc cx
