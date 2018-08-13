@@ -40,10 +40,19 @@ struc NETWARE_GET_REPLY
 .size:
 endstruc
 
+struc RECEIVE_BUFFER
+    .senderConnectionNumber resb 1
+    .msgLength resb 1
+    .buffer resb 126
+.size:
+endstruc
+
 %define SEND_PACKET_CMD 1
 %define OPEN_PIPE_CMD 2
 %define CLOSE_PIPE_CMD 3
 %define CONN_ESTABLISHED_CMD 3
+
+%define NUMBER_OF_RECEIVE_BUFFERS 6
 
 int21e1Handler:
     ;TODO dispatch to other functions based on sub function code.
@@ -134,55 +143,59 @@ sendPacketHandler:
 getPacketHandler:
     ; reply in ES:DI
     pop ax
-    push bx
     push cx
-    call ipxrelinquishcontrol  ; give some time back to the ipx driver
-    lea bx, [recvECB]
-    mov al, byte [cs:bx + ECB.inUse]
-    cmp al, 0                          ; check to see if ecb has a message waiting for us.
-    jnz .noMessage
+    push si
+    lea si, [recvBuffers]
+    mov al, byte [cs:recvBufferNextRead]
+    mov cl, al
+    mov ch, RECEIVE_BUFFER.size
+    mul ch
+    add si, ax ; si now points to recvBuffers[recvBufferNextRead]
 
-    lea bx, [recvHeader]
-    mov cx, word [cs:bx + IPXHEADER.length] ; length is packet length + 30 byte header (big endian)
-    xchg cl, ch ; swap endian
-    sub cx, 30 ; remove header
-    ; cl = packet length
+    mov al, byte [cs:si + RECEIVE_BUFFER.senderConnectionNumber]
+    cmp al, 0     ; no message waiting if senderConnectionNumber is 0.
+    jz .noMessage
 
-    ; length is msg + 1 byte for connection number. Output length is msg + 2 bytes.
+    mov byte [es:di + 2], al ; write sender connection number
+
+    mov byte [cs:si + RECEIVE_BUFFER.senderConnectionNumber], 0 ; zero out this sender connection number so the buffer can be reused.
+
+    mov cl, byte [cs:si + RECEIVE_BUFFER.msgLength]
+    mov ch, 0
+
+    ;cx is now the message length
+
+    inc cx
     inc cx
     mov word [es:di], cx ; write length to reply buffer (msgLength + 2)
     dec cx
     dec cx ; cx is now the length of the message data.
     mov byte [es:di + 3], cl ; write length of message to reply buffer
 
-    push si
     push di
+    push si
     push ds
 
     push cs
-    pop ds ; ds = cs
-    lea si, [recvBuffer]
-    mov al, byte [ds:si] ; get sender connection number.
-    mov byte [es:di + 2], al ; write sender connection number to reply buffer
-    inc si ; move to start of message data.
+    pop ds
 
-    add di, 4 ; move pointer to start of message data in reply buffer.
+    add si, RECEIVE_BUFFER.buffer
+    add di, 4
 
     rep movsb ; copy message data to reply buffer.
 
     pop ds
+    pop si
     pop di
-    pop si
 
-    call ipxInitListenerECB    ; reset listener ECB
-    push es
-    push si
-    push cs
-    pop es   ; es = cs
-    lea si, [recvECB]
-    call ipxlistenforpacket ; setup ECB to listen for packet.
-    pop si
-    pop es
+    mov al, byte [cs:recvBufferNextRead]
+    inc al                               ; increment recv buffer pointer index.
+    cmp al, NUMBER_OF_RECEIVE_BUFFERS
+    jl .saveRecvPointer
+    ; wrap pointer back to 0
+    mov al, 0
+.saveRecvPointer:
+    mov byte [cs:recvBufferNextRead], al ; save recvBuffer index.
 
     jmp .exit
 
@@ -192,8 +205,8 @@ getPacketHandler:
     mov word [es:di + NETWARE_GET_REPLY.msgLength], 0
 
 .exit:
+    pop si
     pop cx
-    pop bx
     mov al, 0 ; success.
     jmp _netwareExitInterrupt
 
@@ -404,6 +417,89 @@ netwareESR:
     call ipxlistenforpacket          ; listen for broadcast messages on 0x2001 and handle them with netwareESR:
 
     retf
+
+;;;; IPX direct message ESR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Used to listen for direct messages. Messages stored in recvBuffers[] ;
+; Start at recvBuffers[recvBufferNextRead] and find the first free
+; buffer then write the message to it. (Free buffers have 0 in the
+; senderConnectionNumber field)
+receiveMsgESR:
+    ; ECB in ES:SI
+
+    ; find a free buffer to write the message to.
+    lea di, [recvBuffers]
+    mov al, byte [cs:recvBufferNextRead]
+    mov cl, al
+    mov ch, RECEIVE_BUFFER.size
+    mul ch
+    add di, ax ; di now points to recvBuffers[recvBufferNextRead]
+
+    mov ch, 0
+
+.loopStart:
+    cmp ch, NUMBER_OF_RECEIVE_BUFFERS
+    jge .resetListener ; we've exhausted all 6 buffers so lets exit without saving this message. :(
+
+    mov al, byte [cs:di + RECEIVE_BUFFER.senderConnectionNumber]
+    cmp al, 0
+    jz .writeMsgToBuffer ; we've found an empty buffer. break out of loop. :)
+
+    cmp cl, NUMBER_OF_RECEIVE_BUFFERS    ; check if we need to wrap around to the start of the recvBuffers array.
+    jz .wrapIndex
+
+    add di, RECEIVE_BUFFER.size ; move to next buffer
+    inc cl
+    jmp .loopEnd
+
+.wrapIndex:
+    lea di, [recvBuffers]
+    mov cl, 0
+    jmp .loopEnd
+
+.loopEnd:
+    inc ch ; increment loop counter
+    jmp .loopStart
+
+.writeMsgToBuffer:
+    ; the free receive buffer is stored in CS:DI
+
+    mov cx, word [es:si + IPXLISTENER.header + IPXHEADER.length] ; length is packet length + 30 byte header (big endian)
+    xchg cl, ch ; swap endian
+    sub cx, 30 ; remove header
+    ; cl = packet length
+    dec cl ; cl remove the sender number byte. This is now the data length
+    mov byte [cs:di + RECEIVE_BUFFER.msgLength], cl ; write message length
+    mov al, byte [es:si + IPXLISTENER.buffer] ; read in sender connection number
+    mov byte [cs:di + RECEIVE_BUFFER.senderConnectionNumber], al ; write sender connection number
+
+    push si
+    push es
+    push ds
+
+    push es
+    pop ds
+
+    push cs
+    pop es
+
+    add di, RECEIVE_BUFFER.buffer
+    add si, IPXLISTENER.buffer
+    inc si ; skip the sender connection number byte.
+    rep movsb ; copy CX bytes from IPX buffer to recvBuffers slot.
+    pop ds
+    pop es
+    pop si
+
+.resetListener:
+    mov di, si ; ECB offset
+    lea ax, [receiveMsgESR]
+    call ipxInitListenerECB    ; reset listener ECB
+    ; es already set to ECB seg here.
+    mov di, si
+    call ipxlistenforpacket ; setup ECB to listen for packet.
+
+    retf
+
 
 ;;; write the sender address to the netwarePipe record.
 ; netware pipe record address passed in BX

@@ -42,15 +42,23 @@ Start:
     mov dx, ipxListenErrMsg
     jnz _ipxInitFailed
 
-    call ipxInitListenerECB
+    ; Load two direct message listener ECBs
 
-    lea si, [recvECB]
-    mov ax, cs
-    mov es, ax
+    lea ax, [receiveMsgESR]
+    lea di, [recvListeners]
+    push cs
+    pop es
+
+    call ipxInitListenerECB
+    mov si, di
     call ipxlistenforpacket
-    cmp al, 0
-    mov dx, ipxListenErrMsg
-    jnz _ipxInitFailed
+
+
+    add di, IPXLISTENER.size
+    lea ax, [receiveMsgESR]
+    call ipxInitListenerECB
+    mov si, di
+    call ipxlistenforpacket
 
     ; Get current interrupt handler for INT 21h
     ; Store it in v21HandlerSegment:v21HandlerOffset
@@ -130,9 +138,11 @@ sendHeader times IPXHEADER.size db 0
 sendBuffer times 128 db 0
 sendPacketLength db 0
 
-recvECB times ECB.size db 0
-recvHeader times IPXHEADER.size db 0
-recvBuffer times 128 db 0
+recvListeners times IPXLISTENER.size * 2 db 0
+
+recvBuffers times RECEIVE_BUFFER.size * NUMBER_OF_RECEIVE_BUFFERS db 0
+
+recvBufferNextRead db 0 ; pointer to the next buffer to read data from.
 
 recvBroadcastECB times ECB.size db 0
 recvBroadcastHeader times IPXHEADER.size db 0

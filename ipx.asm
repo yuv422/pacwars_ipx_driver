@@ -39,6 +39,13 @@ struc IPXHEADER
 .size:
 endstruc
 
+struc IPXLISTENER
+    .ecb resb ECB.size
+    .header resb IPXHEADER.size
+    .buffer resb 128
+.size:
+endstruc
+
 ; init IPX, load entry pointer into _ipxentry
 ; return al = 1 on success, ah = 0 on failure.
 ipxinit:
@@ -92,24 +99,25 @@ ipxrelinquishcontrol:
     pop bx
     ret
 
+; passing in the ESR offset in AX.
+; passing in ECB in CS:DI
 ipxInitListenerECB:
-    push bx
     push ax
-    lea bx, [recvECB]
-    mov word [cs:bx + ECB.esrAddressOff], 0
-    mov word [cs:bx + ECB.esrAddressSeg], 0
-    mov word [cs:bx + ECB.socket], SOCKET_NUMBER
-    mov byte [cs:bx + ECB.fragCount], 2
-    lea ax, [recvHeader]
-    mov word [cs:bx + ECB.fragHeaderOff], ax
-    mov word [cs:bx + ECB.fragHeaderSeg], cs
-    mov word [cs:bx + ECB.fragHeaderSize], IPXHEADER.size
-    lea ax, [recvBuffer]
-    mov word [cs:bx + ECB.fragBufOff], ax
-    mov word [cs:bx + ECB.fragBufSeg], cs
-    mov word [cs:bx + ECB.fragBufSize], 128
+    mov word [cs:di + IPXLISTENER.ecb + ECB.esrAddressOff], ax
+    mov word [cs:di + IPXLISTENER.ecb + ECB.esrAddressSeg], cs
+    mov word [cs:di + IPXLISTENER.ecb + ECB.socket], SOCKET_NUMBER
+    mov byte [cs:di + IPXLISTENER.ecb + ECB.fragCount], 2
+    mov ax, di
+    add ax, IPXLISTENER.header
+    mov word [cs:di + IPXLISTENER.ecb + ECB.fragHeaderOff], ax
+    mov word [cs:di + IPXLISTENER.ecb + ECB.fragHeaderSeg], cs
+    mov word [cs:di + IPXLISTENER.ecb + ECB.fragHeaderSize], IPXHEADER.size
+    mov ax, di
+    add ax, IPXLISTENER.buffer
+    mov word [cs:di + IPXLISTENER.ecb + ECB.fragBufOff], ax
+    mov word [cs:di + IPXLISTENER.ecb + ECB.fragBufSeg], cs
+    mov word [cs:di + IPXLISTENER.ecb + ECB.fragBufSize], 128
     pop ax
-    pop bx
     ret
 
 ; passing in the ESR offset in AX.
