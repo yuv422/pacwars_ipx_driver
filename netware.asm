@@ -236,7 +236,6 @@ openPipeHandler:
 .loopStart:              ; loop over all requested connections
     cmp ch, cl
     jge .loopEnd
-    ;TODO loop body
 
     mov al, byte [ds:si] ; load connection number.
     lea bx, [sendBuffer]
@@ -372,7 +371,7 @@ _netwareExitInterrupt:
 ; call back used to process broadcast messages open/close pipe, connection established.
 
 netwareESR:
-    ; TODO handle send/close/conn established messages here.
+    ; TODO handle conn established messages here.
     mov al, byte [cs:recvBroadcastBuffer + IPX_COMMAND_HEADER.command] ; read the command from the incoming message
     cmp al, OPEN_PIPE_CMD
     jz .openPipeCommand
