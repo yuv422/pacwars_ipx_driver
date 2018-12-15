@@ -1,6 +1,8 @@
 # Pacwars IPX driver.
 
-A simple DOS TSR driver that implements just enough Novel Netware Interrupts to run the 90's Shareware game Pacwars.
+A DOS TSR driver that implements just enough Novell Netware Interrupts to run the 90's Shareware game Pacwars.
+
+![Pacwars](pacwars.gif "Pacwars")
 
 I have fond memories of playing this Novell Netware multiplayer game in the computer room at my school.
 
